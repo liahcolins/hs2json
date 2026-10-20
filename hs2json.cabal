@@ -70,7 +70,7 @@ library
     import:           ghc-options
 
     -- Modules exported by the library.
-    exposed-modules:  MyLib
+    exposed-modules:  SimpleJSON
 
     -- Modules included in this library but not exported.
     -- other-modules:
