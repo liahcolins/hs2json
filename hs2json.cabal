@@ -70,7 +70,7 @@ library
     import:           ghc-options
 
     -- Modules exported by the library.
-    exposed-modules:  SimpleJSON, PutJSON
+    exposed-modules:  SimpleJSON, PutJSON, Prettify, PrettyJSON
 
     -- Modules included in this library but not exported.
     -- other-modules:
