@@ -15,6 +15,8 @@ module Prettify
     , softline
     , compact
     , pretty
+    , fill
+    , nest
     ) where
 
 import Prelude hiding ((<>))
@@ -25,6 +27,7 @@ data Doc = Empty
          | Line
          | Concat Doc Doc
          | Union Doc Doc
+         | Nest Int Doc
          deriving (Show, Eq)
 
 empty :: Doc
@@ -39,6 +42,9 @@ text s = Text s
 
 double :: Double -> Doc
 double d = text (show d)
+
+nest :: Int -> Doc -> Doc
+nest amount doc = Nest amount doc
 
 line :: Doc
 line = Line
@@ -70,6 +76,7 @@ flatten :: Doc -> Doc
 flatten (x `Concat` y) = flatten x `Concat` flatten y
 flatten Line = Char ' '
 flatten (x `Union` _) = flatten x
+flatten (Nest n d) = Nest n (flatten d)
 flatten other = other
 
 punctuate :: Doc -> [Doc] -> [Doc]
@@ -88,32 +95,44 @@ compact x = transform [x]
             Text s       -> s ++ transform ds
             Line         -> '\n' : transform ds
             a `Concat` b -> transform (a:b:ds)
+            Nest _ doc   -> transform (doc:ds)
             _ `Union` b  -> transform (b:ds)
 
+fill :: Int -> Doc -> Doc
+fill width doc =
+    doc <> text (replicate (max 0 (width - lineWidth (compact doc))) ' ')
+  where
+    lineWidth s = length (takeWhile (/= '\n') (reverse s))
 
 pretty :: Int -> Doc -> String
-pretty width x = best 0 [x]
+pretty width x = best 0 [(x, 0)]
   where
-    best col (d:ds) =
-      case d of
-        Empty        -> best col ds
-        Char c       -> c : best (col + 1) ds
-        Text s       -> s ++ best (col + length s) ds
-        Line         -> '\n' : best 0 ds
-        a `Concat` b -> best col (a:b:ds)
-        a `Union` b  -> nicest col (best col (a:ds))
-                               (best col (b:ds))
+    best col ((d, indent):ds) =
+        case d of
+            Empty -> best col ds
+            Char c -> c : best (col + 1) ds
+            Text s -> s ++ best (col + length s) ds
+            Line ->
+                '\n' : (replicate (max 0 indent) ' ' ++ best (max 0 indent) ds)
+            a `Concat` b ->
+                best col ((a, indent):(b, indent):ds)
+            a `Union` b ->
+                nicest col
+                    (best col ((a, indent):ds))
+                    (best col ((b, indent):ds))
+            Nest n doc ->
+                best col ((doc, max 0 (indent + n)):ds)
 
-    best _ _ = ""
+    best _ [] = ""
 
     nicest col a b
-      | (width - least) `fits` a = a
-      | otherwise                = b
+        | (width - least) `fits` a = a
+        | otherwise = b
       where
         least = min width col
 
 fits :: Int -> String -> Bool
 w `fits` _ | w < 0 = False
-_ `fits` "" = True
-_ `fits` ('\n':_) = True
+w `fits` "" = True
+w `fits` ('\n':_) = True
 w `fits` (_:cs) = (w - 1) `fits` cs
