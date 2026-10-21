@@ -6,7 +6,51 @@ import Test.QuickCheck
 
 import SimpleJSON
 import qualified PrettyJSON as Pretty
-import Prettify (pretty)
+import Data.List (intercalate)
+import Prettify
+    ( Doc
+    , char
+    , compact
+    , double
+    , empty
+    , fill
+    , group
+    , hcat
+    , line
+    , nest
+    , pretty
+    , punctuate
+    , text
+    )
+
+newtype TestDoc = TestDoc Doc
+    deriving (Show)
+
+instance Arbitrary TestDoc where
+    arbitrary = TestDoc <$> sized genDoc
+
+genDoc :: Int -> Gen Doc
+genDoc n
+    | n <= 0 = oneof
+        [ pure empty
+        , char <$> arbitrary
+        , text <$> arbitrary
+        , pure line
+        , double <$> arbitrary
+        ]
+    | otherwise = frequency
+        [ (2, pure empty)
+        , (2, char <$> arbitrary)
+        , (3, text <$> arbitrary)
+        , (1, pure line)
+        , (1, double <$> arbitrary)
+        , (2, do
+              x <- genDoc (n `div` 2)
+              y <- genDoc (n `div` 2)
+              pure (hcat [x, y])
+          )
+        , (1, group <$> genDoc (n `div` 2))
+        ]
 
 -- a instancia fica no modulo de testes para manter QuickCheck fora das dependencias da biblioteca principal
 instance Arbitrary JValue where
@@ -124,6 +168,54 @@ prop_renderStringEscapes =
     renderForTest (JString "linha\ncoluna\t\"\\")
         == "\"linha\\ncoluna\\t\\\"\\\\\""
 
+prop_emptyId :: TestDoc -> Bool
+prop_emptyId (TestDoc doc) =
+    hcat [empty, doc] == doc
+        && hcat [doc, empty] == doc
+
+prop_char :: Char -> Bool
+prop_char c =
+    compact (char c) == [c]
+
+prop_text :: String -> Bool
+prop_text s =
+    compact (text s) == s
+
+prop_line :: Bool
+prop_line =
+    compact line == "\n"
+
+prop_double :: Double -> Bool
+prop_double d =
+    compact (double d) == show d
+
+prop_hcat :: [TestDoc] -> Bool
+prop_hcat docs =
+    compact (hcat (map unwrap docs))
+        == concatMap (compact . unwrap) docs
+  where
+    unwrap (TestDoc doc) = doc
+
+prop_punctuate :: TestDoc -> [TestDoc] -> Bool
+prop_punctuate (TestDoc separator) docs =
+    compact (hcat (punctuate separator (map unwrap docs)))
+        == intercalate (compact separator) (map (compact . unwrap) docs)
+  where
+    unwrap (TestDoc doc) = doc
+
+prop_fillPadsShortDocument :: Bool
+prop_fillPadsShortDocument =
+    compact (fill 5 (text "hi")) == "hi   "
+
+prop_fillLeavesLongDocumentUnchanged :: Bool
+prop_fillLeavesLongDocumentUnchanged =
+    compact (fill 2 (text "hello")) == "hello"
+
+prop_nestIndentsFollowingLine :: Bool
+prop_nestIndentsFollowingLine =
+    pretty 20 (nest 2 (hcat [text "a", line, text "b"]))
+        == "a\n  b"
+
 runProperty :: Testable prop => String -> prop -> IO Result
 runProperty name propToRun = do
     putStrLn ("\nPropriedade: " ++ name)
@@ -166,6 +258,26 @@ main = do
             prop_renderObjectIndentation
         , runProperty "o renderizador escapa caracteres especiais"
             prop_renderStringEscapes
+        , runProperty "empty e identidade da concatenacao"
+            prop_emptyId
+        , runProperty "char preserva o caractere"
+            prop_char
+        , runProperty "text preserva a string"
+            prop_text
+        , runProperty "line representa uma quebra de linha"
+            prop_line
+        , runProperty "double usa a representacao show"
+            prop_double
+        , runProperty "hcat concatena documentos"
+            prop_hcat
+        , runProperty "punctuate intercala a pontuacao"
+            prop_punctuate
+        , runProperty "fill completa documentos curtos"
+            prop_fillPadsShortDocument
+        , runProperty "fill nao altera documentos mais largos"
+            prop_fillLeavesLongDocumentUnchanged
+        , runProperty "nest indenta linhas seguintes"
+            prop_nestIndentsFollowingLine
         ]
 
     unless (all isSuccess results) exitFailure
