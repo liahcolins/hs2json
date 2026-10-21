@@ -49,7 +49,7 @@ cabal run
 O programa demonstra a renderização de um objeto JSON. A saída atual é semelhante a:
 
 ```json
-{"foo": 1.0, "bar": false }
+{"foo": 1.0, "bar": false}
 ```
 
 ## Como executar os testes

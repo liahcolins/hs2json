@@ -8,6 +8,7 @@ import SimpleJSON
 import qualified PrettyJSON as Pretty
 import Prettify (pretty)
 
+-- a instancia fica no modulo de testes para manter QuickCheck fora das dependencias da biblioteca principal
 instance Arbitrary JValue where
     arbitrary = sized genJValue
 
@@ -96,6 +97,28 @@ prop_renderEmptyObject :: Bool
 prop_renderEmptyObject =
     renderForTest (JObject []) == "{}"
 
+prop_renderArrayWithValues :: Bool
+prop_renderArrayWithValues =
+    renderForTest (JArray [JNumber 1, JBool False])
+        == "[1.0, false]"
+
+prop_renderObjectWithFields :: Bool
+prop_renderObjectWithFields =
+    renderForTest (JObject [("foo", JNumber 1), ("bar", JBool False)])
+        == "{\"foo\": 1.0, \"bar\": false}"
+
+prop_renderUnicodeEscapes :: Bool
+prop_renderUnicodeEscapes =
+    renderForTest (JString ['\x732b', '\x1f600'])
+        == "\"\\u732b\\ud83d\\ude00\""
+
+prop_renderObjectIndentation :: Bool
+prop_renderObjectIndentation =
+    pretty 15
+        (Pretty.renderJValue
+            (JObject [("foo", JNumber 1), ("bar", JBool False)]))
+        == "{\"foo\": 1.0,\n  \"bar\": false}"
+
 prop_renderStringEscapes :: Bool
 prop_renderStringEscapes =
     renderForTest (JString "linha\ncoluna\t\"\\")
@@ -133,6 +156,14 @@ main = do
             prop_renderEmptyArray
         , runProperty "o renderizador produz objetos vazios"
             prop_renderEmptyObject
+        , runProperty "arrays com valores nao adicionam espacos finais"
+            prop_renderArrayWithValues
+        , runProperty "objetos com campos nao adicionam espacos finais"
+            prop_renderObjectWithFields
+        , runProperty "o renderizador escapa caracteres Unicode"
+            prop_renderUnicodeEscapes
+        , runProperty "objetos recebem indentacao em quebras de linha"
+            prop_renderObjectIndentation
         , runProperty "o renderizador escapa caracteres especiais"
             prop_renderStringEscapes
         ]

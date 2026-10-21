@@ -61,7 +61,9 @@ fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 fold f = foldr f empty
 
 fsep :: [Doc] -> Doc
-fsep = fold (</>)
+fsep [] = empty
+fsep [d] = d
+fsep (d:ds) = d <> softline <> fsep ds
 
 (</>) :: Doc -> Doc -> Doc
 x </> y = x <> softline <> y
@@ -80,8 +82,8 @@ flatten (Nest n d) = Nest n (flatten d)
 flatten other = other
 
 punctuate :: Doc -> [Doc] -> [Doc]
-punctuate p [] = []
-punctuate p [d] = [d]
+punctuate _ [] = []
+punctuate _ [d] = [d]
 punctuate p (d:ds) = (d <> p) : punctuate p ds
 
 compact :: Doc -> String
@@ -133,6 +135,6 @@ pretty width x = best 0 [(x, 0)]
 
 fits :: Int -> String -> Bool
 w `fits` _ | w < 0 = False
-w `fits` "" = True
-w `fits` ('\n':_) = True
+_ `fits` "" = True
+_ `fits` ('\n':_) = True
 w `fits` (_:cs) = (w - 1) `fits` cs
