@@ -109,7 +109,8 @@ executable hs2json
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.20.2.0,
-        hs2json
+        hs2json,
+        QuickCheck
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -148,4 +149,5 @@ test-suite hs2json-test
     -- Test dependencies.
     build-depends:
         base ^>=4.20.2.0,
-        hs2json
+        hs2json,
+        QuickCheck
