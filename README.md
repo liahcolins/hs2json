@@ -30,6 +30,13 @@ O projeto está organizado nos seguintes módulos:
 | `app/Main.hs` | Executa um exemplo de criação e renderização de um objeto JSON. |
 | `test/Spec.hs` | Contém o gerador `Arbitrary JValue` e as propriedades verificadas com QuickCheck. |
 
+## Como clonar o repositório
+
+```powershell
+git clone https://github.com/liahcolins/hs2json.git
+cd hs2json
+```
+
 ## Como compilar
 
 Na raiz do projeto, execute:
@@ -82,7 +89,7 @@ cabal haddock --open
 
 **Duração exigida:** 10 a 15 minutos.
 
-**Link do vídeo:** Pendente de publicação.
+**Link do vídeo:** (https://drive.google.com/drive/folders/1WUCYHf0bj1NKVKwFk8h5TUSNqUa6qPqJ?usp=sharing)
 
 O vídeo deverá demonstrar a arquitetura do projeto, a compilação com `cabal build`, a execução dos testes com `cabal test`, a execução do programa com `cabal run` e as dificuldades encontradas durante o desenvolvimento.
 
